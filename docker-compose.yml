@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # map internal port 5432 to host port 6007
+      - 6007:5432
