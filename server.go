@@ -1,4 +1,4 @@
-package main
+package pgtestserver
 
 import (
 	"fmt"
@@ -80,7 +80,7 @@ func handleClientConnection(incomingClientSocket net.Conn) {
 Starts a TCP server, and loops on accepting connections.
 For each connection, it spawns a new goroutine to handle the connection.
 */
-func startTCPServer() {
+func StartTCPServer() {
 	listener, err := net.Listen("tcp", ":5432")
 	if err != nil {
 		fmt.Println("Error starting TCP server:", err)
@@ -97,10 +97,4 @@ func startTCPServer() {
 		}
 		go handleClientConnection(conn)
 	}
-}
-
-func main() {
-	go startTCPServer()
-	// keep the main thread alive
-	select {}
 }
