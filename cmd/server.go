@@ -4,64 +4,76 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"path/filepath"
-	"reflect"
 
 	"github.com/rubenv/pgtest"
 )
 
-// TODO: It would be better if the pgtest package exported the functionality
-// to get the socket path, so we didn't have to use reflection.
-// maybe contribute to the pgtest package?
-func getSocketPathFromPG(p *pgtest.PG) (string, error) {
-	// Use reflection to access the private field
-	val := reflect.ValueOf(*p)
-
-	// Access the private field 'dir' (first field in the struct)
-	dirField := val.FieldByName("dir")
-
-	// Check if the field is valid and can be accessed
-	if dirField.IsValid() {
-		return filepath.Join(dirField.String(), "sock/.s.PGSQL.5432"), nil
-	} else {
-		return "", fmt.Errorf("field 'dir' d")
-	}
+func getSocketPathFromDir(dir string) string {
+	// the db creates a temporary directory in which two folders exist 'data' and 'sock'.
+	// the one of interest is 'sock' which contains a unix socket file '.s.PGSQL.5432'.
+	return filepath.Join(dir, "sock", ".s.PGSQL.5432")
 }
 
-func handleConnection(incomingClientSocket net.Conn) {
-	defer incomingClientSocket.Close()
-	// create a new pgtest database
-	db, err := pgtest.Start()
+func startDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
+	// create a new temporary directory for the pgtest database
+	temporaryDir, err := os.MkdirTemp("", "pgtest")
+	if err != nil {
+		fmt.Printf("error creating temporary directory: %s\n", err)
+		return nil, "", err
+	}
+	// start the database in the temporary directory
+	db, err := pgtest.New().DataDir(temporaryDir).Start()
 	if err != nil {
 		fmt.Printf("error creating new pgtest database: %s\n", err)
-		return
+		return nil, "", err
 	}
-	defer db.Stop()
 	// run a query to block until the database is ready
 	// instead of sleeping for unknown time.
 	db.DB.Query("SELECT 1")
-	fmt.Printf("created new pgtest database\n")
-	// the db creates a temporary directory in which two folders exist 'data' and 'sock'.
-	// the one of interest is 'sock' which contains a unix socket file '.s.PGSQL.5432'.
-	// get a connection to the database using the socket file
-	socketPath, err := getSocketPathFromPG(db)
-	if err != nil {
-		fmt.Printf("error getting socket path from pgtest database: %s\n", err)
-		return
-	}
+	return db, temporaryDir, nil
+}
+
+func getUnixSocketConnectionToDatabase(temporaryDir string) (net.Conn, error) {
+	socketPath := getSocketPathFromDir(temporaryDir)
 	unixSocketConnectionToDatabase, err := net.Dial("unix", socketPath)
 	if err != nil {
-		fmt.Printf("error connecting to database via unix socket %s: %s\n", socketPath, err)
+		return nil, err
+	}
+	fmt.Printf("connected to database via unix socket %s\n", socketPath)
+	return unixSocketConnectionToDatabase, nil
+}
+
+// doesn't return until one of the connections is closed
+func pipeClientSocketToDb(clientSocket net.Conn, databaseSocket net.Conn) {
+	go io.Copy(databaseSocket, clientSocket) // clientSocket -> databaseSocket
+	io.Copy(clientSocket, databaseSocket)    // databaseSocket -> clientSocket
+}
+
+func handleClientConnection(incomingClientSocket net.Conn) {
+	defer incomingClientSocket.Close()
+
+	// start the database in a temporary directory
+	db, temporaryDir, err := startDatabaseInTemporaryDirectory()
+	if err != nil {
+		fmt.Printf("error starting database: %s\n", err)
+		return
+	}
+	defer db.Stop()
+	fmt.Printf("created new pgtest database\n")
+
+	// get a connection to the database via the unix socket
+	unixSocketConnectionToDatabase, err := getUnixSocketConnectionToDatabase(temporaryDir)
+	if err != nil {
+		fmt.Printf("error getting unix socket connection to database: %s\n", err)
 		return
 	}
 	defer unixSocketConnectionToDatabase.Close()
-	fmt.Printf("connected to database via unix socket %s\n", socketPath)
 
 	// pipe the connection between the client and the database
-	go io.Copy(unixSocketConnectionToDatabase, incomingClientSocket)
-	io.Copy(incomingClientSocket, unixSocketConnectionToDatabase)
-	fmt.Println("db or client disconnected..")
-	fmt.Printf("closing database connection to socket file %s\n", socketPath)
+	pipeClientSocketToDb(incomingClientSocket, unixSocketConnectionToDatabase)
+	fmt.Println("db or client disconnected.. closing database connection")
 }
 
 /*
@@ -83,7 +95,7 @@ func startTCPServer() {
 			fmt.Println("Error accepting connection:", err)
 			continue
 		}
-		go handleConnection(conn)
+		go handleClientConnection(conn)
 	}
 }
 
