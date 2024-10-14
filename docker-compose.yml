@@ -6,5 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      # map internal port 5432 to host port 6007
+      # map internal port 5432 to host port 6543
       - 6543:5432
+    restart: always
+    volumes:
+      - ./pgtest-server-data-volume:/tmp
+
