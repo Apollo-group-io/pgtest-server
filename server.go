@@ -73,7 +73,7 @@ func handleClientConnection(incomingClientSocket net.Conn) {
 
 	// pipe the connection between the client and the database
 	pipeClientSocketToDb(incomingClientSocket, unixSocketConnectionToDatabase)
-	fmt.Println("db or client disconnected.. closing database connection")
+	fmt.Println("db or client disconnected.. closing database connection for temporary directory: ", temporaryDir)
 }
 
 /*
