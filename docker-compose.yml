@@ -7,4 +7,4 @@ services:
       dockerfile: Dockerfile
     ports:
       # map internal port 5432 to host port 6007
-      - 6007:5432
+      - 6543:5432
