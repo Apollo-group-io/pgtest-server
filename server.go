@@ -51,7 +51,7 @@ func pipeClientSocketToDb(clientSocket net.Conn, databaseSocket net.Conn) {
 	io.Copy(clientSocket, databaseSocket)    // databaseSocket -> clientSocket
 }
 
-func handleClientConnection(incomingClientSocket net.Conn) {
+func handleClientConnectionTestRunner(incomingClientSocket net.Conn) {
 	defer incomingClientSocket.Close()
 
 	// start the database in a temporary directory
@@ -76,11 +76,38 @@ func handleClientConnection(incomingClientSocket net.Conn) {
 	fmt.Println("db or client disconnected.. closing database connection for temporary directory: ", temporaryDir)
 }
 
+func handleClientConnectionSnapshotUpdater(incomingClientSocket net.Conn) {
+	defer incomingClientSocket.Close()
+
+	// start the database in a temporary directory
+	db, temporaryDir, err := startDatabaseInTemporaryDirectory() // enable fsync
+	if err != nil {
+		fmt.Printf("error starting database: %s\n", err)
+		return
+	}
+	fmt.Printf("created new pgtest database\n")
+
+	// get a connection to the database via the unix socket
+	unixSocketConnectionToDatabase, err := getUnixSocketConnectionToDatabase(temporaryDir)
+	if err != nil {
+		fmt.Printf("error getting unix socket connection to database: %s\n", err)
+		return
+	}
+
+	// pipe the connection between the client and the database
+	pipeClientSocketToDb(incomingClientSocket, unixSocketConnectionToDatabase)
+	fmt.Println("db or client disconnected.. closing database connection for temporary directory: ", temporaryDir)
+
+	unixSocketConnectionToDatabase.Close()
+	db.Stop()
+
+}
+
 /*
 Starts a TCP server, and loops on accepting connections.
 For each connection, it spawns a new goroutine to handle the connection.
 */
-func StartTCPServer() {
+func StartTCPServerForTestRunners() {
 	listener, err := net.Listen("tcp", ":5432")
 	if err != nil {
 		fmt.Println("Error starting TCP server:", err)
@@ -95,6 +122,25 @@ func StartTCPServer() {
 			fmt.Println("Error accepting connection:", err)
 			continue
 		}
-		go handleClientConnection(conn)
+		go handleClientConnectionTestRunner(conn)
+	}
+}
+
+func StartTCPServerForSnapshotUpdater() {
+	listener, err := net.Listen("tcp", ":5433")
+	if err != nil {
+		fmt.Println("Error starting TCP server:", err)
+		return
+	}
+
+	fmt.Printf("listening on port 5433\n")
+	for {
+		conn, err := listener.Accept()
+		fmt.Printf("accepted tcp connection\n")
+		if err != nil {
+			fmt.Println("Error accepting connection:", err)
+			continue
+		}
+		go handleClientConnectionSnapshotUpdater(conn)
 	}
 }

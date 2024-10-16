@@ -3,7 +3,7 @@ package main
 import "pgtestserver"
 
 func main() {
-	go pgtestserver.StartTCPServer()
+	go pgtestserver.StartTCPServerForTestRunners()
 	// keep the main thread alive
 	select {}
 }
