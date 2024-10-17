@@ -160,4 +160,53 @@ func HandleClientConnectionSnapshotUpdater(incomingClientSocket net.Conn) {
 	unixSocketConnectionToDatabase.Close()
 	db.Stop()
 
+	// copy data from temporaryDir into /tmp/templatedb/data
+	err = copyUpdatedDatabase(temporaryDir, "/tmp/templatedb/data")
+	if err != nil {
+		fmt.Printf("error copying updated database: %s\n", err)
+	} else {
+		fmt.Println("Successfully updated template database")
+	}
+}
+
+// Add this new function at the end of the file
+func copyUpdatedDatabase(sourceDir, destDir string) error {
+	// Remove the existing destination directory
+	err := os.RemoveAll(destDir)
+	if err != nil {
+		return fmt.Errorf("error removing existing template database: %w", err)
+	}
+
+	// Create the destination directory
+	err = os.MkdirAll(destDir, 0755)
+	if err != nil {
+		return fmt.Errorf("error creating template database directory: %w", err)
+	}
+
+	// Copy the updated database files
+	err = filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(sourceDir, path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(destDir, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(destPath, info.Mode())
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(destPath, data, info.Mode())
+	})
+	if err != nil {
+		return fmt.Errorf("error copying updated database: %w", err)
+	}
+
+	return nil
 }
