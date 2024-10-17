@@ -20,9 +20,14 @@ func startDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
 	// create a new temporary directory for the pgtest database
 	temporaryDir, err := os.MkdirTemp("", "pgtest")
 	if err != nil {
-		fmt.Printf("error creating temporary directory: %s\n", err)
+		return nil, "", fmt.Errorf("error creating temporary directory: %w", err)
+	}
+
+	err = copyTemplateDatabase(temporaryDir)
+	if err != nil {
 		return nil, "", err
 	}
+
 	// start the database in the temporary directory
 	db, err := pgtest.New().DataDir(temporaryDir).Start()
 	if err != nil {
@@ -33,6 +38,41 @@ func startDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
 	// instead of sleeping for unknown time.
 	db.DB.Query("SELECT 1")
 	return db, temporaryDir, nil
+}
+
+func copyTemplateDatabase(temporaryDir string) error {
+	// FOR TESTING PURPOSES - Create an empty /tmp/templatedb/data directory
+	err := os.MkdirAll("/tmp/templatedb/data", 0755)
+	if err != nil {
+		return fmt.Errorf("error creating template database directory: %w", err)
+	}
+
+	// copy the /tmp/templatedb/data folder into the newly created temporaryDir
+	err = filepath.Walk("/tmp/templatedb/data", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel("/tmp/templatedb/data", path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(temporaryDir, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(destPath, info.Mode())
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(destPath, data, info.Mode())
+	})
+	if err != nil {
+		return fmt.Errorf("error copying template database: %w", err)
+	}
+
+	return nil
 }
 
 func getUnixSocketConnectionToDatabase(temporaryDir string) (net.Conn, error) {
