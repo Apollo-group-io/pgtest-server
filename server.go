@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rubenv/pgtest"
+	"github.com/Apollo-group-io/pgtest"
 )
 
 func getSocketPathFromDir(dir string) string {
@@ -16,7 +16,7 @@ func getSocketPathFromDir(dir string) string {
 	return filepath.Join(dir, "sock", ".s.PGSQL.5432")
 }
 
-func startDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
+func startTestRunnerDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
 	// create a new temporary directory for the pgtest database
 	temporaryDir, err := os.MkdirTemp("", "pgtest")
 	if err != nil {
@@ -29,9 +29,28 @@ func startDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
 	}
 
 	// start the database in the temporary directory
-	db, err := pgtest.New().DataDir(temporaryDir).Start()
+	db, err := pgtest.New().DataDir(temporaryDir).Start(true)
 	if err != nil {
 		fmt.Printf("error creating new pgtest database: %s\n", err)
+		return nil, "", err
+	}
+	// run a query to block until the database is ready
+	// instead of sleeping for unknown time.
+	db.DB.Query("SELECT 1")
+	return db, temporaryDir, nil
+}
+
+func startSnapshotUpdaterDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
+	// create a new temporary directory for the pgtest database
+	temporaryDir, err := os.MkdirTemp("", "pgtest-updates")
+	if err != nil {
+		return nil, "", fmt.Errorf("error creating temporary directory: %w", err)
+	}
+
+	// start the database in the temporary directory
+	db, err := pgtest.New().DataDir(temporaryDir).Persistent().Start(false)
+	if err != nil {
+		fmt.Printf("error creating new pgtest-updates database: %s\n", err)
 		return nil, "", err
 	}
 	// run a query to block until the database is ready
@@ -95,7 +114,7 @@ func HandleClientConnectionTestRunner(incomingClientSocket net.Conn) {
 	defer incomingClientSocket.Close()
 
 	// start the database in a temporary directory
-	db, temporaryDir, err := startDatabaseInTemporaryDirectory()
+	db, temporaryDir, err := startTestRunnerDatabaseInTemporaryDirectory()
 	if err != nil {
 		fmt.Printf("error starting database: %s\n", err)
 		return
@@ -120,12 +139,12 @@ func HandleClientConnectionSnapshotUpdater(incomingClientSocket net.Conn) {
 	defer incomingClientSocket.Close()
 
 	// start the database in a temporary directory
-	db, temporaryDir, err := startDatabaseInTemporaryDirectory() // enable fsync
+	db, temporaryDir, err := startSnapshotUpdaterDatabaseInTemporaryDirectory() // enable fsync
 	if err != nil {
 		fmt.Printf("error starting database: %s\n", err)
 		return
 	}
-	fmt.Printf("created new pgtest database\n")
+	fmt.Printf("created new pgtest-updates database\n")
 
 	// get a connection to the database via the unix socket
 	unixSocketConnectionToDatabase, err := getUnixSocketConnectionToDatabase(temporaryDir)
