@@ -29,7 +29,7 @@ func startTestRunnerDatabaseInTemporaryDirectory() (*pgtest.PG, string, error) {
 	}
 
 	// start the database in the temporary directory
-	db, err := pgtest.New().DataDir(temporaryDir).Start(true)
+	db, err := pgtest.New().DataDir(temporaryDir).Start()
 	if err != nil {
 		fmt.Printf("error creating new pgtest database: %s\n", err)
 		return nil, "", err
@@ -48,7 +48,7 @@ func startSnapshotUpdaterDatabaseInTemporaryDirectory() (*pgtest.PG, string, err
 	}
 
 	// start the database in the temporary directory
-	db, err := pgtest.New().DataDir(temporaryDir).Persistent().Start(false)
+	db, err := pgtest.New().DataDir(temporaryDir).Persistent().EnableFSync().Start()
 	if err != nil {
 		fmt.Printf("error creating new pgtest-updates database: %s\n", err)
 		return nil, "", err
