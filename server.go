@@ -6,9 +6,12 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/Apollo-group-io/pgtest"
 )
+
+var templateDBMutex sync.Mutex
 
 func getSocketPathFromDir(dir string) string {
 	// the db creates a temporary directory in which two folders exist 'data' and 'sock'.
@@ -171,6 +174,10 @@ func HandleClientConnectionSnapshotUpdater(incomingClientSocket net.Conn) {
 
 // Add this new function at the end of the file
 func copyUpdatedDatabase(sourceDir, templateDir string) error {
+	// Acquire the mutex lock
+	templateDBMutex.Lock()
+	defer templateDBMutex.Unlock()
+
 	// Paths for the template database directories
 	oldDataDir := filepath.Join(templateDir, "data")
 	newDataDir := filepath.Join(templateDir, "new-data")
