@@ -14,8 +14,8 @@ func copyTemplateDbDataFolderTo(destinationDir string) error {
 	templateDBMutex.Lock()
 	defer templateDBMutex.Unlock()
 
-	if !utils.FolderExists(_TEMPLATE_DB_PATH) {
-		return fmt.Errorf("error creating template database directory")
+	if !utils.FolderExistsAndNotEmpty(_TEMPLATE_DB_PATH) {
+		return fmt.Errorf("template db directory does not exist or is empty")
 	}
 
 	templateDbDataFolderPath := filepath.Join(_TEMPLATE_DB_PATH, _DATA_DIR_NAME)
@@ -34,21 +34,32 @@ func updateTemplateDbDataFolder(sourceDir string) error {
 	templateDBMutex.Lock()
 	defer templateDBMutex.Unlock()
 
+	if !utils.FolderExistsAndNotEmpty(sourceDir) {
+		fmt.Println("skipping update of template db because updater db left an empty folder")
+		return nil
+	}
+
 	// Paths for the template database directories
 	oldDataDir := filepath.Join(_TEMPLATE_DB_PATH, _DATA_DIR_NAME)
 	newDataDir := filepath.Join(_TEMPLATE_DB_PATH, "new-data")
 	tempOldDataDir := filepath.Join(_TEMPLATE_DB_PATH, "old-data")
 
 	// Step 1: move source dir to new data dir
-	err := os.Rename(sourceDir, newDataDir)
+	// we're not using .Rename here because the destination
+	// might be mounted somewhere. This could end up in a
+	// invalid cross device link error
+	err := utils.CopySrcDirToDstDir(sourceDir, newDataDir)
 	if err != nil {
 		return fmt.Errorf("error copying updated database: %w", err)
 	}
 
-	// Step 2: move data to old-data
-	err = os.Rename(oldDataDir, tempOldDataDir)
-	if err != nil {
-		return fmt.Errorf("error renaming old data directory: %w", err)
+	// Step 2: move data to old-data if `data` exists
+	// previously
+	if utils.FolderExists(oldDataDir) {
+		err = os.Rename(oldDataDir, tempOldDataDir)
+		if err != nil {
+			return fmt.Errorf("error renaming old data directory: %w", err)
+		}
 	}
 
 	// Step 3: move new-data to data

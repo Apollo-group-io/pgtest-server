@@ -14,21 +14,20 @@ func startTempDatabase() (*pgtest.PG, string, error) {
 	// create a new temporary directory for the pgtest database
 	temporaryDir, err := os.MkdirTemp("", _TEST_DB_ROOT_DIR_PREFIX)
 	if err != nil {
-		return nil, "", fmt.Errorf("error creating temporary directory: %w", err)
+		return nil, "", fmt.Errorf("error creating temporary directory: %s", err)
 	}
 
 	dataDirectory := filepath.Join(temporaryDir, _DATA_DIR_NAME)
 	err = copyTemplateDbDataFolderTo(dataDirectory)
 	if err != nil {
-		fmt.Printf("error cloning template db: %s\n", err)
-		return nil, "", err
+		os.RemoveAll(temporaryDir)
+		return nil, "", fmt.Errorf("error cloning template db: %s", err)
 	}
 
 	// start the database in the temporary directory
 	db, err := utils.StartPgTempDb(temporaryDir, false)
 	if err != nil {
-		fmt.Printf("error creating new pgtest database: %s\n", err)
-		return nil, "", err
+		return nil, "", fmt.Errorf("error creating new pgtest database: %s", err)
 	}
 	// run a query to block until the database is ready
 	// instead of sleeping for unknown time.
@@ -42,16 +41,16 @@ func HandleTempDBConnection(incomingClientSocket net.Conn) {
 	// start the database in a temporary directory
 	db, temporaryDir, err := startTempDatabase()
 	if err != nil {
-		fmt.Printf("error starting database: %s\n", err)
+		fmt.Println("error starting database: ", err)
 		return
 	}
 	defer db.Stop()
-	fmt.Printf("created new pgtest database\n")
+	fmt.Println("created new pgtest database")
 
 	// get a connection to the database via the unix socket
 	unixSocketConnectionToDatabase, err := utils.GetUnixSocketConnectionToDatabase(temporaryDir)
 	if err != nil {
-		fmt.Printf("error getting unix socket connection to database: %s\n", err)
+		fmt.Println("error getting unix socket connection to database: ", err)
 		return
 	}
 	defer unixSocketConnectionToDatabase.Close()
