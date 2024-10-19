@@ -14,11 +14,11 @@ func copyTemplateDbDataFolderTo(destinationDir string) error {
 	templateDBMutex.Lock()
 	defer templateDBMutex.Unlock()
 
-	if !utils.FolderExistsAndNotEmpty(_TEMPLATE_DB_PATH) {
-		return fmt.Errorf("template db directory does not exist or is empty")
+	templateDbDataFolderPath := filepath.Join(_TEMPLATE_DB_PATH, _DATA_DIR_NAME)
+	if !utils.FolderExistsAndNotEmpty(templateDbDataFolderPath) {
+		return fmt.Errorf("template db directory does not exist or is empty: %s", templateDbDataFolderPath)
 	}
 
-	templateDbDataFolderPath := filepath.Join(_TEMPLATE_DB_PATH, _DATA_DIR_NAME)
 	// copy the /tmp/templatedb/data folder into the destination
 	err := utils.CopySrcDirToDstDir(templateDbDataFolderPath, destinationDir)
 	if err != nil {

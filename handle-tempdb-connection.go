@@ -17,8 +17,7 @@ func startTempDatabase() (*pgtest.PG, string, error) {
 		return nil, "", fmt.Errorf("error creating temporary directory: %s", err)
 	}
 
-	dataDirectory := filepath.Join(temporaryDir, _DATA_DIR_NAME)
-	err = copyTemplateDbDataFolderTo(dataDirectory)
+	err = copyTemplateDbDataFolderTo(filepath.Join(temporaryDir, _DATA_DIR_NAME))
 	if err != nil {
 		os.RemoveAll(temporaryDir)
 		return nil, "", fmt.Errorf("error cloning template db: %s", err)
