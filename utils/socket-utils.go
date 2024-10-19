@@ -12,10 +12,16 @@ const (
 	_SOCK_DIR_NAME            = "sock"
 )
 
+func GetSockFolderPathForDB(dbRootDir string) string {
+	// the db creates a temporary directory in which two folders exist 'data' and 'sock'.
+	// the one of interest is 'sock' which contains a unix socket file '.s.PGSQL.5432'.
+	return filepath.Join(dbRootDir, _SOCK_DIR_NAME)
+}
+
 func GetSockFilePathForDB(dbRootDir string) string {
 	// the db creates a temporary directory in which two folders exist 'data' and 'sock'.
 	// the one of interest is 'sock' which contains a unix socket file '.s.PGSQL.5432'.
-	return filepath.Join(dbRootDir, _SOCK_DIR_NAME, _PG_UNIX_SOCKET_FILE_NAME)
+	return filepath.Join(GetSockFolderPathForDB(dbRootDir), _PG_UNIX_SOCKET_FILE_NAME)
 }
 
 func GetUnixSocketConnectionToDatabase(dbRootDir string) (net.Conn, error) {

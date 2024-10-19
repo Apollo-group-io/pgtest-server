@@ -16,11 +16,11 @@ var (
 )
 
 func createTemplateDbDump() error {
-	socketPath := utils.GetSockFilePathForDB(_TEMPLATE_DB_PATH)
+	socketPath := utils.GetSockFolderPathForDB(_TEMPLATE_DB_PATH)
 	return utils.CreatePgDump(socketPath, _TEMPLATE_DB_DUMP_FILE_LOCATION, "postgres", "test")
 }
 
-func getTemplateDb() (string, error) {
+func GetOrStartTemplateDb() (string, error) {
 	templateDBMutex.Lock()
 	defer templateDBMutex.Unlock()
 	/*
@@ -42,14 +42,17 @@ func getTemplateDb() (string, error) {
 	// instead of sleeping for unknown time.
 	db.DB.Query("SELECT 1")
 	// take the db dump when starting the first time
-	createTemplateDbDump()
+	err = createTemplateDbDump()
+	if err != nil {
+		fmt.Println("error while creating a dump from template db: ", err)
+	}
 	templateDb = db
 	return _TEMPLATE_DB_PATH, nil
 }
 
 func startDbAndPipeUntilConnectionClosed(incomingClientSocket net.Conn) error {
 	// start the database in a temporary directory
-	dbRootDir, err := getTemplateDb() // enable fsync
+	dbRootDir, err := GetOrStartTemplateDb() // enable fsync
 	if err != nil {
 		return fmt.Errorf("error starting database: %s", err)
 	}
