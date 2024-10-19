@@ -10,6 +10,6 @@ RUN apt-get update && \
 WORKDIR /opt/src
 ADD . /opt/src
 
-RUN go build -o /usr/bin/server ./cmd/main.go
+RUN go build -o /usr/bin/server ./cmd/server.go
 
 CMD ["server"]

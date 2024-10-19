@@ -11,7 +11,7 @@ services:
       - 6544:5433
     restart: always
     volumes:
-      - pgtest-server-data-volume:/tmp
+      - ./template-db-data:/tmp/templatedb/data
 
 volumes:
   pgtest-server-data-volume:

@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	TestRunnerPort      = 5432
-	SnapshotUpdaterPort = 5433
+	_TEMPDB_PORT       = 5432
+	_DATE_UPDATER_PORT = 5433
 )
 
 func main() {
-	go startServer(TestRunnerPort, pgtestserver.HandleClientConnectionTestRunner)
-	go startServer(SnapshotUpdaterPort, pgtestserver.HandleClientConnectionSnapshotUpdater)
+	go startServer(_TEMPDB_PORT, pgtestserver.HandleTempDBConnection)
+	go startServer(_DATE_UPDATER_PORT, pgtestserver.HandleDataUpdaterConnection)
 
 	// Keep the main goroutine running
 	select {}
