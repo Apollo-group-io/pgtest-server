@@ -4,35 +4,24 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"pgtestserver/utils"
 
 	"github.com/Apollo-group-io/pgtest"
 )
 
 func startTempDatabase() (*pgtest.PG, string, error) {
-	// create a new temporary directory for the pgtest database
-	temporaryDir, err := os.MkdirTemp("", _TEST_DB_ROOT_DIR_PREFIX)
+	tempDir, err := os.MkdirTemp("", _TEMP_DB_ROOT_DIR_PREFIX)
 	if err != nil {
-		return nil, "", fmt.Errorf("error creating temporary directory: %s", err)
+		return nil, "", fmt.Errorf("error creating temp folder for temp db: %s", err)
 	}
-
-	err = copyTemplateDbDataFolderTo(filepath.Join(temporaryDir, _DATA_DIR_NAME))
-	if err != nil {
-		os.RemoveAll(temporaryDir)
-		return nil, "", fmt.Errorf("error cloning template db: %s", err)
-	}
-
 	// start the database in the temporary directory
-	db, err := utils.StartPgTempDb(temporaryDir, false)
+	db, err := utils.StartTempDb(tempDir)
 	if err != nil {
-		os.RemoveAll(temporaryDir)
+		os.RemoveAll(tempDir)
 		return nil, "", fmt.Errorf("error creating new pgtest database: %s", err)
 	}
-	// run a query to block until the database is ready
-	// instead of sleeping for unknown time.
-	db.DB.Query("SELECT 1")
-	return db, temporaryDir, nil
+	// use pg_restore to backup from existing template db.
+	return db, tempDir, nil
 }
 
 func HandleTempDBConnection(incomingClientSocket net.Conn) {

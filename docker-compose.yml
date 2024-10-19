@@ -11,4 +11,4 @@ services:
       - 6544:5433
     restart: always
     volumes:
-      - ./templatedb:/tmp/templatedb
+      - ./templatedb-data:/tmp/templatedb/data

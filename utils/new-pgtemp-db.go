@@ -1,26 +1,26 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/Apollo-group-io/pgtest"
 )
 
-func startDb(dbRootDir string, persistent bool) (*pgtest.PG, error) {
-	if persistent {
-		// start the database in the temporary directory
-		return pgtest.New().DataDir(dbRootDir).Persistent().EnableFSync().Start()
+func StartTempDb(dbRootDir string) (*pgtest.PG, error) {
+	db, err := pgtest.New().DataDir(dbRootDir).Start()
+	if err != nil {
+		return nil, fmt.Errorf("error starting temp db: %s", err)
 	}
-	return pgtest.New().DataDir(dbRootDir).Start()
+	db.DB.Query("SELECT 1")
+	return db, nil
 }
 
-func StartPgTempDb(dbRootDir string, persistent bool) (*pgtest.PG, error) {
-
+func StartTemplateDB(dbRootDir string) (*pgtest.PG, error) {
 	// start the database in the temporary directory
-	db, err := startDb(dbRootDir, persistent)
+	db, err := pgtest.New().DataDir(dbRootDir).Persistent().EnableFSync().Start()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error starting template db: %s", err)
 	}
-	// run a query to block until the database is ready
-	// instead of sleeping for unknown time.
 	db.DB.Query("SELECT 1")
 	return db, nil
 }
