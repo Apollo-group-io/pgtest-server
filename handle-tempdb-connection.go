@@ -27,6 +27,7 @@ func startTempDatabase() (*pgtest.PG, string, error) {
 	// start the database in the temporary directory
 	db, err := utils.StartPgTempDb(temporaryDir, false)
 	if err != nil {
+		os.RemoveAll(temporaryDir)
 		return nil, "", fmt.Errorf("error creating new pgtest database: %s", err)
 	}
 	// run a query to block until the database is ready
