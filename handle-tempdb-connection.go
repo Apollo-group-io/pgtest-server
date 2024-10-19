@@ -9,7 +9,7 @@ import (
 	"github.com/Apollo-group-io/pgtest"
 )
 
-func startTempDatabase() (*pgtest.PG, string, error) {
+func GetOrStartTempDatabase() (*pgtest.PG, string, error) {
 	tempDir, err := os.MkdirTemp("", _TEMP_DB_ROOT_DIR_PREFIX)
 	if err != nil {
 		return nil, "", fmt.Errorf("error creating temp folder for temp db: %s", err)
@@ -21,6 +21,7 @@ func startTempDatabase() (*pgtest.PG, string, error) {
 		return nil, "", fmt.Errorf("error creating new pgtest database: %s", err)
 	}
 	// use pg_restore to backup from existing template db.
+	utils.RestorePgDump(utils.GetSockFilePathForDB(tempDir), _TEMPLATE_DB_DUMP_FILE_LOCATION, "postgres", "test")
 	return db, tempDir, nil
 }
 
@@ -28,7 +29,7 @@ func HandleTempDBConnection(incomingClientSocket net.Conn) {
 	defer incomingClientSocket.Close()
 
 	// start the database in a temporary directory
-	db, temporaryDir, err := startTempDatabase()
+	db, temporaryDir, err := GetOrStartTempDatabase()
 	if err != nil {
 		fmt.Println("error starting database: ", err)
 		return
