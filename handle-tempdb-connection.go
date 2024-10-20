@@ -20,8 +20,8 @@ func getTempDatabase() (*pgtest.PG, string, error) {
 		os.RemoveAll(tempDir)
 		return nil, "", fmt.Errorf("error creating new pgtest database: %s", err)
 	}
-	// use pg_restore to backup from existing template db.
-	utils.RestorePgDump(utils.GetSockFolderPathForDB(tempDir), _TEMPLATE_DB_DUMP_FILE_LOCATION, "postgres", "test")
+	// use pg_restore to backup from existing base db.
+	utils.RestorePgDump(utils.GetSockFolderPathForDB(tempDir), _BASE_DB_DUMP_FILE_LOCATION, "postgres", "test")
 	return db, tempDir, nil
 }
 

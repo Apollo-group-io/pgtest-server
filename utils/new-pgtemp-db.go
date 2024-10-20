@@ -15,11 +15,11 @@ func StartTempDb(dbRootDir string) (*pgtest.PG, error) {
 	return db, nil
 }
 
-func StartTemplateDB(dbRootDir string) (*pgtest.PG, error) {
+func StartBaseDB(dbRootDir string) (*pgtest.PG, error) {
 	// start the database in the temporary directory
 	db, err := pgtest.New().DataDir(dbRootDir).Persistent().EnableFSync().Start()
 	if err != nil {
-		return nil, fmt.Errorf("error starting template db: %s", err)
+		return nil, fmt.Errorf("error starting basedb: %s", err)
 	}
 	db.DB.Query("SELECT 1")
 	return db, nil

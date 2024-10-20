@@ -14,7 +14,7 @@ func CreatePgDump(sockFolderPath, dumpFilePath, username, dbName string) error {
 	dumperMutex.Lock()
 	defer dumperMutex.Unlock()
 
-	fmt.Println("start templatedb backup to:", dumpFilePath)
+	fmt.Println("start basedb backup to:", dumpFilePath)
 	cmd := exec.Command("pg_dump", "-U", username, "-h", sockFolderPath, "-F", "c", "-b", "-v", "-f", dumpFilePath, dbName)
 	cmd.Env = append(cmd.Env, "PGPASSWORD=passwordnotimportant")
 
@@ -23,7 +23,7 @@ func CreatePgDump(sockFolderPath, dumpFilePath, username, dbName string) error {
 		return fmt.Errorf("error creating dump: %v, output: %s", err, output)
 	}
 
-	fmt.Println("done templatedb backup to:", dumpFilePath)
+	fmt.Println("done basedb backup to:", dumpFilePath)
 	return nil
 
 }
@@ -33,7 +33,7 @@ func RestorePgDump(sockFolderPath, dumpFilePath, username, dbName string) error 
 	dumperMutex.Lock()
 	defer dumperMutex.Unlock()
 
-	fmt.Println("start templatedb restore from: ", dumpFilePath)
+	fmt.Println("start basedb restore from: ", dumpFilePath)
 
 	// Check if the dump file exists
 	if _, err := os.Stat(dumpFilePath); os.IsNotExist(err) {
@@ -48,7 +48,7 @@ func RestorePgDump(sockFolderPath, dumpFilePath, username, dbName string) error 
 		return fmt.Errorf("error restoring dump: %v, output: %s", err, output)
 	}
 
-	fmt.Println("done templatedb restore from: ", dumpFilePath)
+	fmt.Println("done basedb restore from: ", dumpFilePath)
 
 	return nil
 }
