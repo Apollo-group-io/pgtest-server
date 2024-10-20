@@ -7,12 +7,9 @@ import (
 	"path/filepath"
 	"pgtestserver/utils"
 	"sync"
-
-	"github.com/Apollo-group-io/pgtest"
 )
 
 var (
-	baseDb      *pgtest.PG = nil
 	baseDBMutex sync.Mutex
 )
 
