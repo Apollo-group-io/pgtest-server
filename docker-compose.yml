@@ -11,4 +11,4 @@ services:
       - 6544:5433
     restart: always
     volumes:
-      - ./basedb-data:/tmp/basedb/data
+      - ./basedb-dump:/tmp/basedb-dump

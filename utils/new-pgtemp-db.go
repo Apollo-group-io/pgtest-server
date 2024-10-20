@@ -6,20 +6,14 @@ import (
 	"github.com/Apollo-group-io/pgtest"
 )
 
-func StartTempDb(dbRootDir string) (*pgtest.PG, error) {
-	db, err := pgtest.New().DataDir(dbRootDir).Start()
-	if err != nil {
-		return nil, fmt.Errorf("error starting temp db: %s", err)
+func StartPGTestDB(dbRootDir string, enableFsync bool) (*pgtest.PG, error) {
+	config := pgtest.New().DataDir(dbRootDir)
+	if enableFsync {
+		config = config.EnableFSync()
 	}
-	db.DB.Query("SELECT 1")
-	return db, nil
-}
-
-func StartBaseDB(dbRootDir string) (*pgtest.PG, error) {
-	// start the database in the temporary directory
-	db, err := pgtest.New().DataDir(dbRootDir).Persistent().EnableFSync().Start()
+	db, err := config.Start()
 	if err != nil {
-		return nil, fmt.Errorf("error starting basedb: %s", err)
+		return nil, fmt.Errorf("error starting pgtest db: %s", err)
 	}
 	db.DB.Query("SELECT 1")
 	return db, nil

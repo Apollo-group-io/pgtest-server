@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"sync"
 )
@@ -36,7 +35,7 @@ func RestorePgDump(sockFolderPath, dumpFilePath, username, dbName string) error 
 	fmt.Println("start basedb restore from: ", dumpFilePath)
 
 	// Check if the dump file exists
-	if _, err := os.Stat(dumpFilePath); os.IsNotExist(err) {
+	if !FileExists(dumpFilePath) {
 		return fmt.Errorf("dump file does not exist at path: %s", dumpFilePath)
 	}
 

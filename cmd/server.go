@@ -12,7 +12,7 @@ const (
 )
 
 func main() {
-	pgtestserver.GetOrStartBaseDb()
+	pgtestserver.StartBaseDbIfNotUp()
 	go startServer(_TEMPDB_PORT, pgtestserver.HandleTempDBConnection)
 	go startServer(_DATE_UPDATER_PORT, pgtestserver.HandleDataUpdaterConnection)
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"pgtestserver/utils"
 	"sync"
 
@@ -15,51 +16,71 @@ var (
 	baseDBMutex sync.Mutex
 )
 
-func createBaseDbDump() error {
-	socketPath := utils.GetSockFolderPathForDB(_BASE_DB_PATH)
-	return utils.CreatePgDump(socketPath, _BASE_DB_DUMP_FILE_LOCATION, "postgres", "test")
+func writeBaseDbDataToDumpFile() error {
+	baseDbRootDir := _BASE_DB_PATH
+	dumpFilePath := _BASE_DB_DUMP_FILE_LOCATION
+	// create dump file with postfix ".new"
+	socketFolderPath := utils.GetSockFolderPathForDB(baseDbRootDir)
+	err := utils.CreatePgDump(socketFolderPath, dumpFilePath+".new", "postgres", "test")
+	if err != nil {
+		return fmt.Errorf("error while taking basedb dump: %s", err)
+	}
+
+	// overwrite the old file with the new file in one atomic file system operation
+	os.Rename(dumpFilePath+".new", dumpFilePath)
+	return nil
 }
 
-func GetOrStartBaseDb() (string, error) {
+func initializeBaseDbDataFromDumpFile(baseDbRootDir, dumpFilePath string) error {
+	socketFolderPath := utils.GetSockFolderPathForDB(baseDbRootDir)
+	return utils.RestorePgDump(socketFolderPath, dumpFilePath, "postgres", "test")
+}
+
+func isBaseDbUp() bool {
+	dataFolderExists := utils.FolderExistsAndNotEmpty(filepath.Join(_BASE_DB_PATH, "data"))
+	sockFolderExists := utils.FolderExistsAndNotEmpty(filepath.Join(_BASE_DB_PATH, "sock"))
+	return dataFolderExists && sockFolderExists
+}
+
+func StartBaseDbIfNotUp() error {
 	baseDBMutex.Lock()
 	defer baseDBMutex.Unlock()
-	/*
-		We are going to check if we have a db, if not we will start it,
-		and from that point on all incoming connections will be sent to this
-		database.
-	*/
-	if baseDb != nil {
-		return _BASE_DB_PATH, nil
+
+	if isBaseDbUp() {
+		return nil
 	}
 
 	// start the database in the baseDbDir
-	db, err := utils.StartBaseDB(_BASE_DB_PATH)
+	db, err := utils.StartPGTestDB(_BASE_DB_PATH, true)
 	if err != nil {
-		os.RemoveAll(_BASE_DB_PATH)
-		return "", fmt.Errorf("error creating updater db: %w", err)
+		os.RemoveAll(_BASE_DB_PATH) // remove basedb folder
+		return fmt.Errorf("error creating updater db: %s", err)
 	}
-	// run a query to block until the database is ready
-	// instead of sleeping for unknown time.
-	db.DB.Query("SELECT 1")
-	// take the db dump when starting the first time
-	err = createBaseDbDump()
-	if err != nil {
-		fmt.Println("error while creating a dump from basedb: ", err)
+	// when starting the first time, restore from the .dump file
+	if utils.FileExists(_BASE_DB_DUMP_FILE_LOCATION) {
+		fmt.Println("base-db: dump file exists, restoring from base file: ", _BASE_DB_DUMP_FILE_LOCATION)
+		err = initializeBaseDbDataFromDumpFile(_BASE_DB_PATH, _BASE_DB_DUMP_FILE_LOCATION)
+		if err != nil {
+			db.Stop() // stop removes basedb folder
+			return fmt.Errorf("error restoring basedb from dump: %s", err)
+		}
+	} else {
+		fmt.Println("base-db: dump file does not exist, starting empty...")
 	}
-	baseDb = db
-	return _BASE_DB_PATH, nil
+
+	return nil
 }
 
 func startDbAndPipeUntilConnectionClosed(incomingClientSocket net.Conn) error {
 	// start the database in a temporary directory
-	dbRootDir, err := GetOrStartBaseDb() // enable fsync
+	err := StartBaseDbIfNotUp() // enable fsync
 	if err != nil {
 		return fmt.Errorf("error starting database: %s", err)
 	}
 	fmt.Printf("created new pgtest-updates database\n")
 
 	// get a connection to the database via the unix socket
-	unixSocketConnectionToDatabase, err := utils.GetUnixSocketConnectionToDatabase(dbRootDir)
+	unixSocketConnectionToDatabase, err := utils.GetUnixSocketConnectionToDatabase(_BASE_DB_PATH)
 	if err != nil {
 		return fmt.Errorf("error getting unix socket connection to database: %s", err)
 	}
@@ -67,10 +88,7 @@ func startDbAndPipeUntilConnectionClosed(incomingClientSocket net.Conn) error {
 
 	// pipe the connection between the client and the database
 	utils.PipeClientSocketToDb(incomingClientSocket, unixSocketConnectionToDatabase)
-	fmt.Println("db or client disconnected.. closing database connection for temporary directory: ", dbRootDir)
-
-	// take a dump after closing the connection
-	createBaseDbDump()
+	fmt.Println("db or client disconnected.. closing database connection for basedb: ", _BASE_DB_PATH)
 
 	return nil
 }
@@ -81,6 +99,12 @@ func HandleDataUpdaterConnection(incomingClientSocket net.Conn) {
 	err := startDbAndPipeUntilConnectionClosed(incomingClientSocket)
 	if err != nil {
 		fmt.Println("error while processing connection: ", err)
+	}
+
+	// take a dump after closing the connection
+	err = writeBaseDbDataToDumpFile()
+	if err != nil {
+		fmt.Println("error while creating a dump from basedb: ", err)
 	}
 
 }
