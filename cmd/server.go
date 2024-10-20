@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	_TEMPDB_PORT       = 5432
-	_DATE_UPDATER_PORT = 5433
+	_TEMPDB_PORT = 5432
+	_BASEDB_PORT = 5433
 )
 
 func main() {
 	pgtestserver.StartBaseDbIfNotUp()
 	go startServer(_TEMPDB_PORT, pgtestserver.HandleTempDBConnection)
-	go startServer(_DATE_UPDATER_PORT, pgtestserver.HandleDataUpdaterConnection)
+	go startServer(_BASEDB_PORT, pgtestserver.HandleBaseDBConnection)
 
 	// Keep the main goroutine running
 	select {}

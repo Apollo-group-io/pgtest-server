@@ -1,58 +1,41 @@
-# PostgreSQL Proxy for Testing
+# PG Test Server
 
-This project provides a PostgreSQL proxy server that creates a new PostgreSQL instance for each incoming connection, ideal for unit and API testing.
+PG Test Server is a PostgreSQL-based service designed to provide isolated database environments for unit testing and API testing. It creates temporary database clones from a base database for each connection, ensuring that tests run in a clean, consistent environment.
 
-## Overview
+## Features
 
-- The proxy listens on port 5432 internally and is mapped to port 6007 on the host machine via Docker.
-- Each connection creates a new PostgreSQL instance in a temporary directory, ensuring a clean state for testing.
+- Maintains a base database that can be initialized from a dump file.
+- Changes made to the base database are re-synced into the dump file, after the connection to base db closes.
+- Serves temporary databases per connection initialized from the current state of the dump file
+- Supports concurrent connections, for temporary databases. Each is isolated from the others
 
-## Prerequisites
+## How It Works
 
-- Docker
-- Docker Compose
+1. The server runs on two ports:
+   - 5432: For temporary database connections
+   - 5433: For base database connections
+   - In the docker-compose file these ports are re-mapped to 6543 and 6544 respectively.
 
-## Getting Started
+2. Base Database:
+   - Initialized from a dump file (if available) on server start.
+   - All incoming connections on 5433 goto the same basedb instance.
+   - After every connection ends, base db is re-dumped to the dump file
 
-1. **Clone the repository:**
-
-   ```bash
-   git clone <repository-url>
-   cd <repository-directory>
-   ```
-
-2. **Start the server:**
-
-   ```bash
-   docker-compose up
-   ```
-
-   The server will start and listen on port 6007 of the host machine.
+3. Temporary Databases:
+   - Created for each new connection to port 5432
+   - Cloned from the latest dump file
+   - Destroyed after the connection is closed
 
 ## Usage
 
-Connect to the PostgreSQL proxy using any PostgreSQL client from any programming language:
+1. Start the server:
+   ```
+   docker compose up -d
+   ```
 
-- Host: `localhost`
-- Port: `6007`
-- Username: postgres
-- Password: you can use anything here
-- Database: test
+2. Connect to the temporary database port (5432) for isolated test environments.
 
-Each connection creates a new, clean PostgreSQL instance.
-
-## Project Structure
-
-- `README.md`: This documentation file
-- `server.go`: Main server logic
-- `cmd/main.go`: Application entry point
-- `Dockerfile`: Docker image configuration
-- `docker-compose.yml`: Docker Compose configuration
-
-## Stopping the Server
-
-Use `Ctrl+C` in the terminal where the server is running to stop it.
+3. Connect to the base database port (5433) to make persistent changes - that you desire in every test env.
 
 ## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+To be added

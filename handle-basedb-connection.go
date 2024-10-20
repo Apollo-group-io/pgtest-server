@@ -90,7 +90,7 @@ func startDbAndPipeUntilConnectionClosed(incomingClientSocket net.Conn) error {
 	return nil
 }
 
-func HandleDataUpdaterConnection(incomingClientSocket net.Conn) {
+func HandleBaseDBConnection(incomingClientSocket net.Conn) {
 	defer incomingClientSocket.Close()
 
 	err := startDbAndPipeUntilConnectionClosed(incomingClientSocket)
