@@ -1,4 +1,4 @@
-version: "3.3"
+version: '3.3'
 
 services:
   server:
@@ -8,7 +8,7 @@ services:
     ports:
       # map internal port 5432 to host port 6543
       - 6543:5432
+      - 6544:5433
     restart: always
     volumes:
-      - ./pgtest-server-data-volume:/tmp
-
+      - ./basedb-dump:/tmp/basedb-dump
