@@ -1,5 +1,5 @@
-github.com/Apollo-group-io/pgtest v1.2.1 h1:LXipEjyATywfMZ24UAgvLrigpAjjdBqBTgWY+58PkbE=
-github.com/Apollo-group-io/pgtest v1.2.1/go.mod h1:rhLBaN9NhA35T2akNDguhbKBYGV5bJlYD+7PyjQ0nf4=
+github.com/Apollo-group-io/pgtest v1.2.2 h1:3LpJ8wRN3f2n2+pwpKWqgr1DDo6kI62dYzNhJSaYKnU=
+github.com/Apollo-group-io/pgtest v1.2.2/go.mod h1:7i4ntmvO5Gr9hgU9WGVuF/BPJaQeN/rlxBH3FwDI9mk=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/lib/pq v1.3.0 h1:/qkRGz8zljWiDcFvgpwUpwIAPu3r07TDvs3Rws+o/pU=

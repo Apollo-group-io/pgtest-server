@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 
-	"github.com/Apollo-group-io/pgtest"
+	"github.com/rubenv/pgtest"
 )
 
 func StartPGTestDB(dbRootDir string, enableFsync bool) (*pgtest.PG, error) {

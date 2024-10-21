@@ -6,7 +6,7 @@ import (
 	"os"
 	"pgtestserver/utils"
 
-	"github.com/Apollo-group-io/pgtest"
+	"github.com/rubenv/pgtest"
 )
 
 func getTempDatabase() (*pgtest.PG, string, error) {
